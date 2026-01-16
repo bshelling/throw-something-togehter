@@ -9,45 +9,45 @@ interface Props {
 
 const WardrobeGrid: React.FC<Props> = ({ items, onAddItem }) => {
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Shirt className="text-primary" /> My Wardrobe
+    <div className="p-6 md:p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-light text-white flex items-center gap-3">
+          <Shirt className="text-zinc-400" strokeWidth={1.5} /> My Wardrobe
         </h2>
         <button 
           onClick={onAddItem}
-          className="bg-primary hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+          className="bg-primary hover:bg-white text-black px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all font-medium text-sm"
         >
-          <Plus size={18} /> Add Item
+          <Plus size={16} /> Add Item
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {items.map((item) => (
-          <div key={item.id} className="group relative bg-card rounded-xl overflow-hidden border border-slate-700 hover:border-primary transition-all shadow-lg hover:shadow-primary/20">
-            <div className="aspect-square w-full overflow-hidden bg-slate-800 relative">
+          <div key={item.id} className="group relative bg-card rounded-lg overflow-hidden border border-zinc-800 hover:border-zinc-600 transition-all hover:shadow-xl">
+            <div className="aspect-[3/4] w-full overflow-hidden bg-zinc-900 relative">
               <img 
                 src={item.imageUrl} 
                 alt={item.name} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 saturate-50 group-hover:saturate-100" 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
                 <div className="flex flex-wrap gap-1">
                   {item.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="text-xs bg-white/20 text-white px-2 py-1 rounded-full backdrop-blur-sm">
-                      #{tag}
+                    <span key={tag} className="text-[10px] uppercase tracking-wider bg-white text-black px-2 py-1 rounded-sm font-bold">
+                      {tag}
                     </span>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-semibold text-white truncate">{item.name}</h3>
-                  <p className="text-xs text-slate-400">{item.brand || 'Unbranded'} • {item.color}</p>
+            <div className="p-4">
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-white truncate">{item.name}</h3>
+                  <p className="text-xs text-zinc-500 mt-1">{item.brand || 'Unbranded'} • {item.color}</p>
                 </div>
-                <Tag size={14} className="text-slate-500 mt-1" />
+                <Tag size={12} className="text-zinc-600 mt-1 shrink-0" />
               </div>
             </div>
           </div>
@@ -56,12 +56,12 @@ const WardrobeGrid: React.FC<Props> = ({ items, onAddItem }) => {
         {/* Upload Placeholder */}
         <button 
           onClick={onAddItem}
-          className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-primary bg-slate-800/50 hover:bg-slate-800 flex flex-col items-center justify-center text-slate-400 hover:text-primary transition-all group"
+          className="aspect-[3/4] rounded-lg border border-dashed border-zinc-700 hover:border-white bg-zinc-900/50 hover:bg-zinc-900 flex flex-col items-center justify-center text-zinc-500 hover:text-white transition-all group gap-4"
         >
-          <div className="p-4 rounded-full bg-slate-900 group-hover:bg-primary/20 mb-3 transition-colors">
+          <div className="p-4 rounded-full bg-zinc-800 group-hover:bg-white group-hover:text-black transition-colors">
             <Plus size={24} />
           </div>
-          <span className="text-sm font-medium">Add New Piece</span>
+          <span className="text-xs font-medium uppercase tracking-widest">Add Piece</span>
         </button>
       </div>
     </div>

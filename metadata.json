@@ -1,5 +1,5 @@
 {
-  "name": "StyleMate AI",
+  "name": "Throw something together",
   "description": "An AI-powered wardrobe assistant that plans daily outfits, forecasts styles based on weather and events, and visualizes looks.",
   "requestFramePermissions": [
     "camera",
