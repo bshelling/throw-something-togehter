@@ -10,6 +10,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const generateOutfitPlan = async (
   inventory: WardrobeItem[],
   context: {
+    targetDate: string;
     schedule: string;
     mood: string;
     location: string;
@@ -22,16 +23,17 @@ export const generateOutfitPlan = async (
   const prompt = `
     Act as a world-class fashion stylist.
     User Context:
-    - Schedule/Events: ${context.schedule}
-    - Mood/Feeling: ${context.mood} (Note: If mood implies comfort/bloated, prioritize non-restrictive clothing).
+    - Target Date: ${context.targetDate}
     - Location: ${context.location}
+    - Schedule/Events for this date: ${context.schedule}
+    - Mood/Feeling: ${context.mood} (Note: If mood implies comfort/bloated, prioritize non-restrictive clothing).
     - Specific Request: ${context.customRequest || 'None'}
 
     Available Wardrobe Inventory:
     ${inventoryList}
 
     Task:
-    1. USE THE GOOGLE SEARCH TOOL to find the current weather for the specified location (${context.location}). This is CRITICAL.
+    1. USE THE GOOGLE SEARCH TOOL to find the weather forecast for ${context.location} on ${context.targetDate}. This is CRITICAL.
     2. Analyze the user's schedule. If there are multiple events (e.g. Work then Dinner), suggest an outfit that transitions well or is versatile.
     3. Select the best combination of items from the inventory.
     4. Identify if any key piece is missing to complete the look (Gap Analysis) and recommend it.

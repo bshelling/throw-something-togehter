@@ -90,8 +90,17 @@ export const EVENTS = [
   { label: 'Formal Event', value: Occasion.FORMAL },
 ];
 
+// Helper to generate a date relative to today for valid mock data
+const getDateFromToday = (daysOffset: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  return d.toISOString().split('T')[0];
+};
+
 export const MOCK_CALENDAR_EVENTS: CalendarEvent[] = [
-  { id: '1', time: '09:00 AM', title: 'Q4 Strategy Review', type: Occasion.WORK },
-  { id: '2', time: '01:00 PM', title: 'Lunch with Client', type: Occasion.WORK },
-  { id: '3', time: '06:30 PM', title: 'Dinner at Nobu', type: Occasion.DATE_NIGHT },
+  { id: '1', date: getDateFromToday(0), time: '09:00 AM', title: 'Q4 Strategy Review', type: Occasion.WORK },
+  { id: '2', date: getDateFromToday(0), time: '01:00 PM', title: 'Lunch with Client', type: Occasion.WORK },
+  { id: '3', date: getDateFromToday(1), time: '06:30 PM', title: 'Dinner at Nobu', type: Occasion.DATE_NIGHT },
+  { id: '4', date: getDateFromToday(2), time: '08:00 AM', title: 'Morning Gym Session', type: Occasion.GYM },
+  { id: '5', date: getDateFromToday(3), time: '10:00 AM', title: 'Travel to Paris', type: Occasion.TRAVEL },
 ];

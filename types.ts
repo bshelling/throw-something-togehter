@@ -34,6 +34,7 @@ export interface UserMood {
 
 export interface CalendarEvent {
   id: string;
+  date: string; // ISO Date String YYYY-MM-DD
   time: string;
   title: string;
   type: Occasion;

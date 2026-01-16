@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WardrobeItem, OutfitRecommendation, CalendarEvent, UserMood } from '../types';
 import { generateOutfitPlan, generateOutfitVisual } from '../services/geminiService';
-import { Sparkles, MapPin, Calendar, Heart, ShoppingBag, Loader2, Share2, Plus, Trash2, LocateFixed, RefreshCw } from 'lucide-react';
+import { Sparkles, MapPin, Calendar, Heart, ShoppingBag, Loader2, Share2, Plus, Trash2, LocateFixed, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MOODS, MOCK_CALENDAR_EVENTS } from '../constants';
 
 interface Props {
@@ -23,12 +23,47 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
   const [location, setLocation] = useState<string>('New York, NY');
   const [customRequest, setCustomRequest] = useState('');
 
+  // Calendar Week State
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [weekDays, setWeekDays] = useState<Date[]>([]);
+
+  // Initialize Week (Find recent Sunday)
+  useEffect(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - dayOfWeek);
+    setCurrentWeekStart(sunday);
+  }, []);
+
+  // Update WeekDays when week start changes
+  useEffect(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(currentWeekStart);
+      d.setDate(currentWeekStart.getDate() + i);
+      return d;
+    });
+    setWeekDays(days);
+  }, [currentWeekStart]);
+
+  const handleNextWeek = () => {
+    const next = new Date(currentWeekStart);
+    next.setDate(next.getDate() + 7);
+    setCurrentWeekStart(next);
+  };
+
+  const handlePrevWeek = () => {
+    const prev = new Date(currentWeekStart);
+    prev.setDate(prev.getDate() - 7);
+    setCurrentWeekStart(prev);
+  };
+
   // Location Handler
   const handleGeolocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // In a real app we might reverse geocode, but coordinates work fine for the prompt
           setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
         },
         (error) => {
@@ -56,6 +91,7 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
     if (title) {
       setSchedule([...schedule, { 
         id: Date.now().toString(), 
+        date: selectedDate,
         title, 
         time: 'TBD', 
         type: import('../types').then(m => m.Occasion.CASUAL) as any 
@@ -67,14 +103,23 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
     setSchedule(schedule.filter(e => e.id !== id));
   };
 
+  // Get events for selected date
+  const todaysEvents = schedule.filter(e => e.date === selectedDate);
+  
+  // Format selected date for display
+  const formatDateDisplay = (dateStr: string) => {
+    const d = new Date(dateStr + 'T12:00:00'); // hack to avoid timezone shifts
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  };
+
   const handleGenerate = async () => {
     if (!process.env.API_KEY) {
       alert("Please set your API_KEY in the environment variables.");
       return;
     }
 
-    if (schedule.length === 0 && !customRequest) {
-      const proceed = confirm("Your schedule is empty. Proceed with a default 'Casual Day'?");
+    if (todaysEvents.length === 0 && !customRequest) {
+      const proceed = confirm(`No events scheduled for ${formatDateDisplay(selectedDate)}. Proceed with a default 'Casual Day'?`);
       if (!proceed) return;
     }
 
@@ -83,13 +128,14 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
     setGeneratedImage(null);
 
     // Format schedule for AI
-    const scheduleString = schedule.length > 0 
-      ? schedule.map(e => `[${e.time}] ${e.title}`).join(', ')
+    const scheduleString = todaysEvents.length > 0 
+      ? todaysEvents.map(e => `[${e.time}] ${e.title}`).join(', ')
       : "General Casual Day";
 
     try {
       // 1. Generate Plan
       const rec = await generateOutfitPlan(inventory, {
+        targetDate: formatDateDisplay(selectedDate),
         schedule: scheduleString,
         mood: `${selectedMood.label} (${selectedMood.value})`,
         location,
@@ -122,10 +168,10 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
 
         <div className="space-y-8">
           
-          {/* 1. Location & Weather */}
+          {/* 1. Location */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wide">
-              <MapPin size={14} /> Location (Weather)
+              <MapPin size={14} /> Location
             </label>
             <div className="flex gap-2">
               <input 
@@ -143,40 +189,74 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
                 <LocateFixed size={20} />
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">
-              *Weather data is fetched automatically based on location.
-            </p>
           </div>
 
-          {/* 2. Schedule / Calendar */}
+          {/* 2. Calendar Window */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wide">
-                <Calendar size={14} /> Today's Agenda
+               <label className="text-sm font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wide">
+                <Calendar size={14} /> Weekly Plan
               </label>
-              {!isCalendarConnected && (
-                <button 
-                  onClick={handleConnectCalendar}
-                  disabled={calendarLoading}
-                  className="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all flex items-center gap-1"
-                >
-                  {calendarLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                  Sync Calendar
-                </button>
-              )}
+               <div className="flex items-center gap-2">
+                 <button onClick={handlePrevWeek} className="p-1 hover:bg-slate-800 rounded"><ChevronLeft size={16}/></button>
+                 <span className="text-xs text-slate-500 font-mono">
+                   {weekDays[0]?.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - {weekDays[6]?.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                 </span>
+                 <button onClick={handleNextWeek} className="p-1 hover:bg-slate-800 rounded"><ChevronRight size={16}/></button>
+               </div>
             </div>
 
-            <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
-              {schedule.length === 0 ? (
+            {/* Date Strip */}
+            <div className="grid grid-cols-7 gap-1">
+              {weekDays.map((d) => {
+                const dateStr = d.toISOString().split('T')[0];
+                const isSelected = dateStr === selectedDate;
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all border ${
+                      isSelected 
+                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30' 
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-bold">{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+                    <span className={`text-sm font-bold ${isToday ? 'underline decoration-2 decoration-secondary underline-offset-4' : ''}`}>
+                      {d.getDate()}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            
+            {/* Agenda List */}
+            <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden min-h-[120px]">
+              <div className="bg-slate-800/50 px-3 py-2 border-b border-slate-700 flex justify-between items-center">
+                 <span className="text-xs font-semibold text-white">{formatDateDisplay(selectedDate)}</span>
+                 {!isCalendarConnected && (
+                    <button 
+                      onClick={handleConnectCalendar}
+                      disabled={calendarLoading}
+                      className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded hover:bg-indigo-500/20 transition-all flex items-center gap-1"
+                    >
+                      {calendarLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} Sync
+                    </button>
+                 )}
+              </div>
+
+              {todaysEvents.length === 0 ? (
                 <div className="p-6 text-center text-slate-500 text-sm">
                   <p>No events scheduled.</p>
                   <button onClick={handleAddEvent} className="mt-2 text-primary hover:text-indigo-400 font-medium text-xs flex items-center justify-center gap-1 mx-auto">
-                    <Plus size={12} /> Add Event Manually
+                    <Plus size={12} /> Add Event
                   </button>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-800">
-                  {schedule.map((evt) => (
+                  {todaysEvents.map((evt) => (
                     <div key={evt.id} className="p-3 flex items-center justify-between group hover:bg-slate-800/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="text-xs font-mono text-slate-400 w-16">{evt.time}</div>
@@ -188,14 +268,14 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
                     </div>
                   ))}
                    <button onClick={handleAddEvent} className="w-full py-2 text-xs text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-1">
-                    <Plus size={12} /> Add Another Event
+                    <Plus size={12} /> Add Event
                   </button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 3. Mood/Behavioral */}
+          {/* 3. Mood */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wide">
               <Heart size={14} /> Mood & Feel
@@ -219,7 +299,7 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
             </div>
           </div>
 
-           {/* 4. Custom Request */}
+           {/* 4. Notes */}
            <div className="space-y-3">
             <label className="text-sm font-bold text-slate-300 uppercase tracking-wide">Notes</label>
             <textarea 
@@ -237,7 +317,7 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
               loading ? 'bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-secondary hover:brightness-110'
             }`}
           >
-            {loading ? <><Loader2 className="animate-spin" /> Analyzing...</> : <><Sparkles /> Generate Outfit</>}
+            {loading ? <><Loader2 className="animate-spin" /> Analyzing...</> : <><Sparkles /> Generate Look</>}
           </button>
         </div>
       </div>
@@ -247,8 +327,8 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
         {!recommendation && !loading && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50">
             <Sparkles size={64} className="mb-4 text-slate-700" />
-            <p className="text-xl font-light">Ready to style your day?</p>
-            <p className="text-sm">Connect your calendar or add events to begin.</p>
+            <p className="text-xl font-light">Ready to style your week?</p>
+            <p className="text-sm">Select a date and click generate.</p>
           </div>
         )}
 
@@ -258,8 +338,8 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
                 <Loader2 size={64} className="animate-spin text-primary relative z-10" />
              </div>
-             <p className="mt-6 text-lg animate-pulse font-medium">Reviewing your schedule & checking weather...</p>
-             <p className="text-sm text-slate-500 mt-2">Planning specifically for: {location}</p>
+             <p className="mt-6 text-lg animate-pulse font-medium">Forecasting weather & styling...</p>
+             <p className="text-sm text-slate-500 mt-2">Target: {formatDateDisplay(selectedDate)} in {location}</p>
            </div>
         )}
 
@@ -267,6 +347,11 @@ const OutfitPlanner: React.FC<Props> = ({ inventory }) => {
           <div className="space-y-8 animate-fade-in pb-10">
             {/* Header */}
             <div>
+               <div className="flex items-center gap-2 mb-2">
+                 <span className="text-xs font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 uppercase">
+                    {formatDateDisplay(selectedDate)}
+                 </span>
+               </div>
                <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 mb-2">
                  {recommendation.title}
                </h1>
