@@ -1,0 +1,8 @@
+{
+  "name": "StyleMate AI",
+  "description": "An AI-powered wardrobe assistant that plans daily outfits, forecasts styles based on weather and events, and visualizes looks.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
